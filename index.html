@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>峰平协行｜编组站驼峰与平面调车协同优化平台</title>
+<style>
+  :root{
+    --blue:#2563eb; --blue-dark:#1d4ed8; --blue-soft:#eff6ff; --ink:#0f172a;
+    --muted:#475569; --line:#e2e8f0; --amber:#f59e0b; --amber-soft:#fef3c7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink);background:#f1f5f9;overflow:hidden}
+
+  /* ===== 顶部导航（常驻，任意位置都能切换两个平台） ===== */
+  #shell{height:100%;display:flex;flex-direction:column}
+  header.top{background:#fff;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(15,23,42,.06);z-index:10;flex:none}
+  .bar{display:flex;align-items:center;gap:14px;padding:9px 18px;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;cursor:pointer}
+  .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex:none}
+  .brand .name{font-size:14.5px;font-weight:800;color:#0b1220;line-height:1.2}
+  .brand .name small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+  nav.tabs{display:flex;gap:4px;margin-left:auto;background:#f1f5f9;padding:4px;border-radius:12px;flex-wrap:wrap}
+  nav.tabs button{appearance:none;border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:color .15s,background .15s,box-shadow .15s}
+  nav.tabs button:hover{color:var(--ink)}
+  nav.tabs button.active{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(15,23,42,.14)}
+  nav.tabs button.active.flat{color:#b45309}
+
+  /* 流程步骤条 */
+  .stepper{background:var(--blue-soft);border-top:1px solid #dbeafe;padding:6px 18px;overflow-x:auto}
+  .stepper .inner{display:flex;align-items:center;gap:7px;margin:0 auto;max-width:1280px;justify-content:center}
+  .step{display:flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8;white-space:nowrap}
+  .step .dot{width:20px;height:20px;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .step.on{color:#1e40af;font-weight:600}
+  .step.on .dot{background:var(--blue);color:#fff}
+  .step.on.amber{color:#92400e}
+  .step.on.amber .dot{background:var(--amber);color:#fff}
+  .step.conn{width:20px;height:2px;background:#cbd5e1;flex:none}
+
+  /* ===== 内容区：两个平台 iframe + 项目介绍 ===== */
+  main#content{flex:1;position:relative;min-height:0}
+  .view{position:absolute;inset:0}
+  .view[hidden]{display:none}
+  .view iframe{width:100%;height:100%;border:0;display:block;background:#fff}
+
+  /* 项目介绍页 */
+  .view.intro{overflow-y:auto;background:linear-gradient(180deg,#eff6ff 0%,#fff 380px)}
+  .wrap{max-width:960px;margin:0 auto;padding:34px 24px 70px}
+  header.hero{text-align:center;margin-bottom:6px}
+  .kicker{display:inline-block;font-size:12px;letter-spacing:2px;color:var(--blue);background:var(--blue-soft);border:1px solid #dbeafe;padding:5px 14px;border-radius:999px;margin-bottom:16px;font-weight:600}
+  h1{font-size:clamp(24px,4.2vw,38px);font-weight:800;line-height:1.25;color:#0b1220}
+  h1 .grad{background:linear-gradient(90deg,#2563eb,#1e40af);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lead{margin:14px auto 0;max-width:720px;color:var(--muted);font-size:14.5px;line-height:1.85}
+  .badges{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .tag{font-size:12px;color:#1e40af;background:#fff;border:1px solid var(--line);padding:4px 12px;border-radius:999px}
+  .tag.amber{color:#92400e;background:#fffbeb;border-color:#fde68a}
+  .flow{margin:30px auto 6px;max-width:760px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 26px;box-shadow:0 8px 24px rgba(37,99,235,.06)}
+  .flow h2{font-size:15px;color:#0b1220;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .flow h2::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--blue);display:inline-block}
+  .flow-step{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .flow-node{background:var(--blue-soft);border:1px solid #dbeafe;color:#1e40af;font-weight:600;padding:8px 13px;border-radius:10px;white-space:nowrap}
+  .flow-node.flat{background:var(--amber-soft);border-color:#fde68a;color:#92400e}
+  .flow-arrow{color:#94a3b8;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:26px;margin-top:36px}
+  .part{position:relative;background:linear-gradient(160deg,#eff6ff 0%,#ffffff 62%);border:3px solid #bfdbfe;border-radius:28px;padding:30px 28px 26px;text-align:left;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease;box-shadow:0 10px 24px rgba(37,99,235,.10);font:inherit;color:inherit}
+  .part.amber{background:linear-gradient(160deg,#fffbeb 0%,#ffffff 62%);border-color:#fde68a;box-shadow:0 10px 24px rgba(245,158,11,.12)}
+  .part:hover{transform:translateY(-6px) rotate(-.5deg);box-shadow:0 22px 44px rgba(37,99,235,.22)}
+  .part.amber:hover{box-shadow:0 22px 44px rgba(245,158,11,.24)}
+  .part .no{position:absolute;top:18px;right:20px;font-size:12px;font-weight:800;letter-spacing:2px;color:#60a5fa;background:#fff;border:2px solid #dbeafe;border-radius:999px;padding:3px 12px}
+  .part.amber .no{color:#f59e0b;border-color:#fde68a}
+  .mascot{width:96px;height:96px;border-radius:26px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:inset 0 -8px 14px rgba(0,0,0,.14),0 8px 16px rgba(37,99,235,.28)}
+  .mascot.blue{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+  .mascot.amber{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:inset 0 -8px 14px rgba(0,0,0,.14),0 8px 16px rgba(245,158,11,.32)}
+  .mascot svg{width:58px;height:58px}
+  .part h2{font-size:23px;font-weight:900;color:#0b1220;margin-bottom:8px}
+  .part .sub{font-size:14px;color:var(--muted);line-height:1.75;min-height:48px}
+  .part .go{display:inline-flex;align-items:center;gap:6px;margin-top:18px;font-size:15px;font-weight:800;color:var(--blue)}
+  .part.amber .go{color:#b45309}
+  .go::after{content:"→";transition:transform .18s ease}
+  .part:hover .go::after{transform:translateX(5px)}
+
+  .bridge{margin-top:30px;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .bridge h3{font-size:14.5px;color:#0b1220;padding:14px 20px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
+  .bridge h3 .tog{color:var(--blue);font-size:13px;transition:transform .2s}
+  .bridge.open h3 .tog{transform:rotate(90deg)}
+  .bridge .body{display:none;padding:18px 22px;border-top:1px solid var(--line)}
+  .bridge.open .body{display:block}
+  .bridge .body p{font-size:13px;color:var(--muted);line-height:1.9;margin-bottom:10px}
+  .bridge .body b{color:#0b1220}
+  .bridge .body .steps{margin:6px 0 0;padding-left:0;list-style:none}
+  .bridge .body .steps li{font-size:13px;color:var(--muted);line-height:1.9;padding-left:26px;position:relative;margin-bottom:6px}
+  .bridge .body .steps li::before{content:attr(data-n);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+  footer{margin-top:34px;text-align:center;color:#94a3b8;font-size:12px;line-height:1.8}
+  @media(max-width:640px){.flow-step{flex-direction:column;align-items:flex-start}.flow-arrow{transform:rotate(90deg)}nav.tabs{order:2;width:100%}.bar{row-gap:8px}}
+
+
+  .view.intro{background:radial-gradient(1200px 700px at 15% 0%,#315ac1 0%,transparent 65%),linear-gradient(135deg,#102653 0%,#1e3a8a 45%,#1856c9 100%);color:#fff}
+  .hero h1,.hero h1 .grad{color:#fff;background:none;-webkit-text-fill-color:#fff;text-shadow:0 6px 24px #071b5355}
+  .hero .lead{color:#dce9ff}
+  .hero .kicker,.intro .tag{background:#ffffff14;color:#e2edff;border-color:#ffffff40}
+  .flow{background:#ffffff10;border-color:#ffffff35;box-shadow:none}
+  .flow h2{color:#fff}.flow-arrow{color:#bcd6ff}
+  .part,.part.amber{background:linear-gradient(145deg,#ffffff1c,#ffffff0b);border-color:#ffffff55;box-shadow:0 12px 35px #06183d30}
+  .part h2{color:#fff}.part .sub{color:#d9e7ff}.part .go,.part.amber .go{color:#fff}
+  .intro .part .no{background:#ffffff14;border-color:#ffffff4a;color:#dceaff}
+  .feature-overview{margin-top:48px;text-align:center}
+  .feature-overview>h2{color:#fff;font-size:27px;margin-bottom:28px}
+  .cover-preview{padding:38px 30px;border:1px solid #ffffff38;border-radius:24px;margin-bottom:28px;background:linear-gradient(135deg,#142d6b88,#2563eb40);box-shadow:0 20px 50px #071a4b26}
+  .flat-preview{background:radial-gradient(circle at 80% 0%,#3470f444,transparent 55%),linear-gradient(120deg,#102b6766,#1555df55)}
+  .preview-label{color:#bcd5ff;font-size:12px;font-weight:800;letter-spacing:.2em}
+  .preview-heading h3{color:#fff;font-size:30px;margin:10px 0 12px;line-height:1.3}
+  .preview-heading p{color:#d8e6ff;font-size:14px;line-height:1.8;margin-bottom:28px}
+  .cover-feats,.cover-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .cover-feat,.cover-feature{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;padding:24px 16px;border:1px solid #d7e6ff52;border-radius:18px;background:linear-gradient(145deg,#ffffff24,#ffffff10);text-align:center;box-shadow:0 12px 30px #06184930;transition:transform .2s,background .2s}
+  .cover-feat:hover,.cover-feature:hover{transform:translateY(-4px);background:linear-gradient(145deg,#ffffff32,#ffffff1b)}
+  .cover-mascot{width:90px;height:90px;margin:0 auto 15px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 32% 28%,#fff,#dbeafe 46%,#bfdbfe);box-shadow:inset 0 -6px 14px #2563eb24,0 8px 20px #0003}
+  .cover-mascot svg{width:74px;height:74px}
+  .cover-feat .n,.cover-feature strong{color:#fff;font-size:16px;font-weight:700;line-height:1.5}
+  .cover-feat .d,.cover-feature small{color:#dbe8ff;font-size:12px;line-height:1.8;margin-top:7px;max-width:240px}
+  .cover-icon{display:grid;width:78px;height:78px;place-items:center;margin-bottom:16px;border:1px solid #ffffffb8;border-radius:50%;background:linear-gradient(145deg,#fffffff2,#d8e8ffeb);color:#1858cc;box-shadow:0 11px 24px #07184852;font-size:32px;font-weight:850}
+  .cover-icon-text{font-size:24px}
+  .bridge{background:#ffffff0d;border-color:#ffffff35}.bridge h3{background:#ffffff0c;color:#fff}.bridge h3 .tog{color:#cce1ff}.bridge .body{border-color:#ffffff30}.bridge .body p,.bridge .body .steps li{color:#dce8ff}.bridge .body b{color:#fff}
+  .intro footer,.intro footer div{color:#c4d9ff}
+  @media(max-width:800px){.cover-feats,.cover-features{grid-template-columns:repeat(2,minmax(0,1fr))}.cover-preview{padding:28px 20px}}
+  @media(max-width:500px){.cover-preview{padding:26px 14px}.cover-feats,.cover-features{grid-template-columns:1fr;gap:12px}.cover-feat,.cover-feature{min-height:180px}.preview-heading h3{font-size:24px}.preview-heading p{font-size:12px}.feature-overview>h2{font-size:24px}}
+
+
+  header.top{background:linear-gradient(110deg,#102653,#1b4096);border-bottom-color:#ffffff24;box-shadow:0 4px 18px #06173633}
+  .bar{padding-block:12px}
+  .brand .logo{width:48px;height:40px;background:none;border-radius:0}
+  .brand .logo img{display:block;width:100%;height:100%;object-fit:contain;filter:brightness(0) invert(1)}
+  .brand .name{color:#fff;font-size:19px;letter-spacing:.06em}
+  .brand .name small{color:#cbdcff;font-size:10px;letter-spacing:0;margin-top:5px}
+  nav.tabs{background:#ffffff12;border:1px solid #ffffff20}
+  nav.tabs button{color:#dbe8ff}nav.tabs button:hover{color:#fff;background:#ffffff15}
+  nav.tabs button.active,nav.tabs button.active.flat{background:#ffffff;color:#174aa8;box-shadow:0 3px 12px #05132930}
+  .stepper{background:#153778;border-top-color:#ffffff15}
+  .step{color:#c1d1ec}.step .dot{background:#ffffff1a;color:#dceaff}.step.conn{background:#ffffff35}
+  .step.on,.step.on.amber{color:#fff}.step.on .dot,.step.on.amber .dot{background:#e5efff;color:#194ba4}
+  .hero{padding-top:22px}
+  .hero .project-title{width:min(700px,100%);aspect-ratio:3.5;margin:0 auto 14px;line-height:0}
+  .project-title img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 35%;filter:drop-shadow(0 6px 18px #061a4d40)}
+  .hero .project-subtitle{font-size:clamp(17px,2.3vw,25px);font-weight:600;letter-spacing:.1em;line-height:1.6;color:#f2f6ff;margin:0 auto 22px}
+  @media(max-width:600px){.brand .name{font-size:17px}.brand .name small{font-size:9px}.brand .logo{width:40px;height:34px}.hero{padding-top:10px}.hero .project-subtitle{letter-spacing:.03em;font-size:16px}.bar{gap:10px}}
+
+</style>
+</head>
+<body>
+<div id="shell">
+  <header class="top">
+    <div class="bar">
+      <a class="brand" onclick="setTab('intro')">
+        <span class="logo"><img src="assets/fengping-logo.png" alt="" width="1907" height="1053"></span>
+        <span class="name">峰平协行<small>编组站驼峰与平面调车协同优化平台</small></span>
+      </a>
+      <nav class="tabs">
+        <button data-tab="intro" class="active">项目介绍</button>
+        <button data-tab="hump">第一部分 · 驼峰调车</button>
+        <button data-tab="flat" class="flat">第二部分 · 平面调车</button>
+      </nav>
+    </div>
+</header>
+
+  <main id="content">
+    <!-- 项目介绍 -->
+    <div id="view-intro" class="view intro">
+      <div class="wrap">
+        <header class="hero">
+          <h1 class="project-title"><img src="assets/fengping-title.png" alt="峰平协行" width="1537" height="794"></h1>
+          <p class="project-subtitle">编组站驼峰与平面调车协同优化平台</p>
+          <p class="lead">把「驼峰峰高 / 纵断面多目标优化 + 解体溜放分配」与「平面调车 SAN 弧模型 + A* 方案」放在同一个平台里连续完成：车辆经峰顶按去向溜入分类线，再经峰尾牵出线集结成出发车列。</p>
+          <div class="badges">
+            <span class="tag">依据《铁路站场及枢纽》教材 · TB10062-2018</span>
+          </div>
+        </header>
+
+        <div class="grid">
+          <button class="part" onclick="setTab('hump')">
+            <span class="no">PART 01</span>
+            <div class="mascot blue" aria-hidden="true">
+              <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+                <path d="M4 30 L14 14 L20 22 L28 8 L36 30 Z" fill="#fff" opacity=".95"/>
+                <circle cx="14" cy="13" r="2.2" fill="#2563eb"/><circle cx="15.4" cy="12.4" r=".7" fill="#fff"/><circle cx="13" cy="12.4" r=".7" fill="#fff"/>
+                <path d="M12.6 15.4 Q14 17 15.4 15.4" stroke="#1d4ed8" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h2>第一部分 · 驼峰调车</h2>
+            <div class="sub">峰高与纵断面（加速坡 / 中间坡 / 道岔区坡 / 打靶区）多目标优化，减速器 / 减速顶配置，能高线检算，以及解体溜放分配与「一键传送」衔接数据。</div>
+            <span class="go">进入驼峰调车平台</span>
+          </button>
+
+          <button class="part amber" onclick="setTab('flat')">
+            <span class="no">PART 02</span>
+            <div class="mascot amber" aria-hidden="true">
+              <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+                <g stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+                  <path d="M6 12 H34"/><path d="M6 20 H34"/><path d="M6 28 H34"/><path d="M6 12 L12 20 L6 28"/>
+                </g>
+                <rect x="26" y="9" width="10" height="6" rx="2" fill="#fff"/><rect x="26" y="17" width="10" height="6" rx="2" fill="#fff"/><rect x="26" y="25" width="10" height="6" rx="2" fill="#fff"/>
+              </svg>
+            </div>
+            <h2>第二部分 · 平面调车</h2>
+            <div class="sub">SAN 弧模型 + 加权 A*（浏览器内置 / SCIP 后端两种引擎），论文式时间模型（4.19–4.23），支持「论文去向聚集」与「自定义精确终态」，可一键导入第一部分初始状态。</div>
+            <span class="go">进入平面调车平台</span>
+          </button>
+        </div>
+
+<section class="feature-overview" aria-labelledby="features-title">
+<h2 id="features-title">平台功能一览</h2>
+<section class="cover-preview hump-preview" aria-labelledby="hump-preview-title">
+<div class="preview-heading"><span class="preview-label">PART 01</span><h3 id="hump-preview-title">驼峰调车 · 智能设计</h3><p>设计输入 · 多目标优化 · 纵断面检算 · 解体分配</p></div>
+<div class="cover-feats">
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="20" y="28" width="52" height="52" rx="10" fill="#2563eb"/><rect x="20" y="28" width="52" height="12" rx="6" fill="#1e40af"/><rect x="33" y="20" width="22" height="11" rx="5.5" fill="#f59e0b"/><rect x="28" y="46" width="36" height="24" rx="4" fill="#ffffff"/><rect x="32" y="51" width="28" height="5" rx="2.5" fill="#ef4444"/><rect x="32" y="58" width="28" height="5" rx="2.5" fill="#f59e0b"/><rect x="32" y="65" width="28" height="5" rx="2.5" fill="#22c55e"/><circle cx="39" cy="35" r="2.5" fill="#ffffff"/><circle cx="55" cy="35" r="2.5" fill="#ffffff"/><path d="M42 41 Q47 45 52 41" stroke="#ffffff" stroke-width="2.3" fill="none" stroke-linecap="round"/></svg></div><div class="n">设计输入</div><div class="d">三基准车、股道数、道岔与阻力参数、平面展开图</div></div>
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="58" r="23" fill="#2563eb"/><circle cx="43" cy="54" r="2.6" fill="#ffffff"/><circle cx="57" cy="54" r="2.6" fill="#ffffff"/><path d="M43 63 Q50 69 57 63" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="50" cy="15" r="7" fill="#f59e0b"/><circle cx="50" cy="15" r="2.6" fill="#ffffff"/><circle cx="24" cy="26" r="7" fill="#fbbf24"/><circle cx="24" cy="26" r="2.6" fill="#ffffff"/><circle cx="76" cy="26" r="7" fill="#f59e0b"/><circle cx="76" cy="26" r="2.6" fill="#ffffff"/></svg></div><div class="n">多目标优化</div><div class="d">PSO / ALNS / NSGA-II 自动寻优</div></div>
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M10 80 Q40 28 60 56 Q70 68 90 80 L90 88 L10 88 Z" fill="#34d399"/><path d="M10 80 Q40 28 60 56 Q70 68 90 80" fill="none" stroke="#2563eb" stroke-width="3"/><circle cx="34" cy="58" r="2.6" fill="#065f46"/><circle cx="50" cy="58" r="2.6" fill="#065f46"/><path d="M36 64 Q42 70 48 64" stroke="#065f46" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="28" cy="60" r="3.5" fill="#fda4af" opacity=".7"/><circle cx="56" cy="60" r="3.5" fill="#fda4af" opacity=".7"/><line x1="40" y1="30" x2="40" y2="14" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/><path d="M40 14 l14 5 -14 5 z" fill="#f59e0b"/></svg></div><div class="n">纵断面方案</div><div class="d">凹形「前陡后缓」纵断面、峰高与能高线分析</div></div>
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="24" y="22" width="46" height="58" rx="9" fill="#2563eb"/><rect x="24" y="22" width="46" height="11" rx="5.5" fill="#1e40af"/><rect x="35" y="14" width="20" height="10" rx="5" fill="#f59e0b"/><rect x="31" y="39" width="32" height="33" rx="4" fill="#ffffff"/><path d="M38 55 l6 6 l12 -13" stroke="#22c55e" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="40" cy="29" r="2.5" fill="#ffffff"/><circle cx="54" cy="29" r="2.5" fill="#ffffff"/><path d="M42 34 Q47 38 52 34" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div><div class="n">检算报告</div><div class="d">规范约束逐项自动校核</div></div>
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="20" y="30" width="60" height="30" rx="6" fill="#2563eb"/><rect x="20" y="30" width="60" height="9" rx="4.5" fill="#1e40af"/><circle cx="42" cy="47" r="2.6" fill="#ffffff"/><circle cx="58" cy="47" r="2.6" fill="#ffffff"/><path d="M44 53 Q50 58 56 53" stroke="#ffffff" stroke-width="2.3" fill="none" stroke-linecap="round"/><line x1="34" y1="40" x2="34" y2="58" stroke="#93c5fd" stroke-width="2"/><line x1="66" y1="40" x2="66" y2="58" stroke="#93c5fd" stroke-width="2"/><rect x="8" y="56" width="12" height="4" rx="2" fill="#f59e0b"/><rect x="80" y="56" width="12" height="4" rx="2" fill="#f59e0b"/><line x1="12" y1="68" x2="88" y2="68" stroke="#334155" stroke-width="3"/><circle cx="36" cy="64" r="5" fill="#334155"/><circle cx="64" cy="64" r="5" fill="#334155"/></svg></div><div class="n">解体与溜放分配</div><div class="d">解体车列录入、分类股道分配、平面调车初始状态导出</div></div>
+      <div class="cover-feat"><div class="cover-mascot"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M16 36 l0 -6 a3 3 0 0 1 3 -3 l22 0 l6 7 l28 0 a3 3 0 0 1 3 3 l0 42 a3 3 0 0 1 -3 3 l-56 0 a3 3 0 0 1 -3 -3 z" fill="#f59e0b"/><path d="M16 36 l0 -6 a3 3 0 0 1 3 -3 l22 0 l6 7 z" fill="#fbbf24"/><circle cx="41" cy="54" r="2.6" fill="#7c2d12"/><circle cx="57" cy="54" r="2.6" fill="#7c2d12"/><path d="M43 61 Q49 66 55 61" stroke="#7c2d12" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M50 38 l0 9" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/><path d="M45 43 l5 6 l5 -6" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="n">结果存档</div><div class="d">方案本地保存、导出与载入</div></div></div></section>
+<section class="cover-preview flat-preview" aria-labelledby="flat-preview-title">
+<div class="preview-heading"><span class="preview-label">PART 02</span><h3 id="flat-preview-title">平面调车 · 智能编组</h3><p>状态建模 · 方案求解 · 逐步回放 · 时间分析</p></div>
+<div class="cover-features">
+        <article class="cover-feature">
+          <span class="cover-icon" aria-hidden="true">∑</span><strong>模型参数</strong><small>设置时间模型、运行速度与SAN弧奖励</small>
+        </article>
+        <article class="cover-feature">
+          <span class="cover-icon" aria-hidden="true">⇄</span><strong>状态设置</strong><small>编排车辆、股道、初始状态与目标终态</small>
+        </article>
+        <article class="cover-feature">
+          <span class="cover-icon cover-icon-text" aria-hidden="true">A*</span><strong>智能求解</strong><small>SAN整数弧模型与加权A*搜索协同求解</small>
+        </article>
+        <article class="cover-feature">
+          <span class="cover-icon" aria-hidden="true">▶</span><strong>过程回放</strong><small>逐步查看牵出、推送与股场状态变化</small>
+        </article>
+        <article class="cover-feature">
+          <span class="cover-icon" aria-hidden="true">T</span><strong>时间分析</strong><small>汇总梯线走行、进入与退出股道用时</small>
+        </article>
+        <article class="cover-feature">
+          <span class="cover-icon" aria-hidden="true">▣</span><strong>案例存储</strong><small>搜索、查看、重命名并导出已解案例</small>
+        </article></div></section></section>
+
+        <div class="bridge" id="bridge">
+          <h3 data-toggle><span>衔接说明（点击展开）</span><span class="tog">▸</span></h3>
+          <div class="body">
+            <p><b>为什么分两步：</b>驼峰解体只是调车作业的前半程——车辆经峰顶溜放进入各分类线（调车线）后，还需由机车在峰尾牵出线进行平面调车（取车、推进、转线、编组）。两部分通过「初始状态 JSON」交接，在同一平台内无缝完成。</p>
+            <ul class="steps">
+              <li data-n="1">在<b>第一部分</b>「解体与溜放分配」页录入待解体车列，平台按编组去向分配各分类线。</li>
+              <li data-n="2">点击<b>「一键传送到平面调车」</b>，数据（paper 模式初始状态 + 去向顺序）写入浏览器本地存储并自动切换到第二部分。</li>
+              <li data-n="3">第二部分自动<b>「从驼峰平台导入」</b>，填充车辆 / 股道 / 去向顺序，点「开始求解」得到集结编组方案与全程调车时间。</li>
+              <li data-n="4">两部分结果合起来，即为「驼峰解体 + 平面调车」的完整时间与方案。</li>
+            </ul>
+          </div>
+        </div>
+
+        <footer>
+          <div class="tags" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px">
+            <span class="tag">《铁路站场及枢纽》教材 · 第四篇 P178–P239</span>
+            <span class="tag">TB10062-2018 规范</span>
+            <span class="tag">MOPSO / NSGA-II / ALNS</span>
+            <span class="tag amber">SAN + A*</span>
+          </div>
+          <div>本平台为教学演示与数值实验原型；成本 / 能力 / 时间为估算值，正式设计请以规范全文与工程定额校准。</div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- 第一部分：驼峰调车 -->
+    <div id="view-hump" class="view" hidden>
+      <iframe id="frame-hump" src="hump.html" title="第一部分 · 驼峰调车"></iframe>
+    </div>
+
+    <!-- 第二部分：平面调车 -->
+    <div id="view-flat" class="view" hidden>
+      <iframe id="frame-flat" src="flat/index.html" title="第二部分 · 平面调车"></iframe>
+    </div>
+  </main>
+</div>
+
+<script>
+  var FRAME_HUMP=document.getElementById('frame-hump');
+  var FRAME_FLAT=document.getElementById('frame-flat');
+
+  function setTab(t){
+    ['intro','hump','flat'].forEach(function(k){
+      document.getElementById('view-'+k).hidden = (k!==t);
+      var btn=document.querySelector('nav.tabs button[data-tab="'+k+'"]');
+      if(btn) btn.classList.toggle('active', k===t);
+    });
+  }
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.addEventListener('click',function(){ setTab(b.dataset.tab); });
+  });
+
+  // 让 iframe 内的应用能“顶到父窗口切换标签页”（同源），并回传自动导入指令
+  function postToFlat(){
+    try{
+      if(FRAME_FLAT.contentWindow){
+        FRAME_FLAT.contentWindow.postMessage({type:'hump-flat-switch'}, '*');
+      }else{
+        FRAME_FLAT.addEventListener('load',function(){ FRAME_FLAT.contentWindow.postMessage({type:'hump-flat-switch'},'*'); },{once:true});
+      }
+    }catch(_){}
+  }
+  window.addEventListener('message',function(e){
+    if(e.data && e.data.type==='hump-flat-switch'){
+      setTab('flat');
+      postToFlat();
+    }
+  });
+
+  // 衔接说明折叠
+  var bridge=document.getElementById('bridge');
+  if(bridge) bridge.querySelector('[data-toggle]').addEventListener('click',function(){ bridge.classList.toggle('open'); });
+</script>
+</body>
+</html>
+
